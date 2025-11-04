@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null }
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid }
+
+    // Users profile docs
+    match /users/{userId} {
+      // Publicly readable basic profiles; only owner can write
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Recipes
+    match /recipes/{recipeId} {
+      // Anyone can read non-draft recipes; drafts readable by owner only
+      allow read: if !resource.data.isDraft || isOwner(resource.data.authorId);
+
+      // Only signed-in user can create recipe for themselves
+      allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
+
+      // Only owner can update/delete their recipe
+      allow update, delete: if isOwner(resource.data.authorId);
+    }
+  }
+}
+

@@ -1,20 +1,12 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+// ในไฟล์ App.js (หรือ index.js)
+// 👇 เพิ่มบรรทัดนี้ไว้ "บนสุด" เสมอ
+import 'react-native-gesture-handler'; 
+
+// ... import อื่นๆ ของคุณ
+import React from 'react';
+import AppNavigator from './navigation/AppNavigator';
+// ...
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+  return <AppNavigator />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
