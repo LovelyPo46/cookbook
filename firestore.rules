@@ -1,26 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null }
-    function isOwner(uid) { return request.auth != null && request.auth.uid == uid }
+    // Recipes: public can read published recipes; owners can read/update/delete their own (including drafts)
+    match /recipes/{id} {
+      // Read if published (isDraft == false) OR owner.
+      allow read: if (!('isDraft' in resource.data) || resource.data.isDraft == false)
+                  || (request.auth != null && resource.data.authorId == request.auth.uid);
 
-    // Users profile docs
-    match /users/{userId} {
-      // Publicly readable basic profiles; only owner can write
-      allow read: if true;
-      allow write: if isOwner(userId);
+      // Create only if logged in and authorId matches.
+      allow create: if request.auth != null
+                    && request.resource.data.authorId == request.auth.uid;
+
+      // Update/Delete only by owner.
+      allow update, delete: if request.auth != null
+                            && resource.data.authorId == request.auth.uid;
     }
 
-    // Recipes
-    match /recipes/{recipeId} {
-      // Anyone can read non-draft recipes; drafts readable by owner only
-      allow read: if !resource.data.isDraft || isOwner(resource.data.authorId);
+    // User profiles: everyone can read, only owner can write
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
 
-      // Only signed-in user can create recipe for themselves
-      allow create: if signedIn() && request.resource.data.authorId == request.auth.uid;
-
-      // Only owner can update/delete their recipe
-      allow update, delete: if isOwner(resource.data.authorId);
+    // Favorites mapping: must be logged in; writes only by owner
+    match /favorites/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.data.userId == request.auth.uid;
     }
   }
 }

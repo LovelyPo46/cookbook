@@ -1,25 +1,17 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    function isSignedIn() { return request.auth != null; }
-
-    // Avatars: users/{uid}/avatar.jpg (and other user files)
-    match /users/{userId}/{allPaths=**} {
-      // Avatars/attachments are public to read in this app
+    // User avatars: users/<uid>/...
+    match /users/{uid}/{allPaths=**} {
+      // Public read (adjust to request.auth != null && request.auth.uid == uid if you prefer)
       allow read: if true;
-      // Only the owner can write into their own folder
-      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Recipe images: recipes/{uid}/...
-    match /recipes/{userId}/{allPaths=**} {
-      allow read: if true; // recipe images are public
-      allow write: if isSignedIn() && request.auth.uid == userId;
-    }
-
-    // Deny everything else by default
-    match /{path=**} {
-      allow read, write: if false;
+    // Recipe images: recipes/<uid>/...
+    match /recipes/{uid}/{allPaths=**} {
+      allow read: if true;  // public can view images
+      allow write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
