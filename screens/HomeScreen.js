@@ -1,58 +1,39 @@
-// ในไฟล์: screens/HomeScreen.js (restored minimal)
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Image, TouchableOpacity } from 'react-native';
+// screens/HomeScreen.js (Modified)
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CATEGORIES } from '../constants/categories';
 
 const HomeScreen = ({ navigation }) => {
-  const [searchText, setSearchText] = React.useState('');
+  // ลบ: const [searchText, setSearchText] = React.useState('');
+
+  const data = useMemo(() => CATEGORIES, []);
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search-outline" size={20} color="gray" style={styles.searchIcon} />
-          <TextInput
-            placeholder="พิมพ์ชื่อเมนู..."
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-            returnKeyType="search"
+      <FlatList
+        style={styles.container}
+        data={data}
+        keyExtractor={(item) => `${item.cuisine}`}
+        ListHeaderComponent={
+          <>
+            {/* ลบ: Search Bar View ทั้งหมด */}
+            
+            {/* ปรับ margin ของ Header ให้เหมาะสม */}
+            <View style={[styles.sectionHeader, { paddingHorizontal: 15, marginTop: 15 }]}>
+              <Text style={styles.sectionTitle}>หมวดหมู่</Text>
+            </View>
+          </>
+        }
+        renderItem={({ item }) => (
+          <CategoryCard
+            title={item.title}
+            image={item.image}
+            onPress={() => navigation.navigate('CategoryRecipes', { title: item.title, cuisine: item.cuisine })}
           />
-        </View>
-
-        {/* หมวดหมู่: แสดงรายการแบบรูปซ้าย-ชื่อขวา พร้อมจำนวนเมนู */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>หมวดหมู่</Text>
-          </View>
-          {[
-            { title: 'อาหารไทย', cuisine: 'thai', image: require('../assets/thai.jpg') },
-            { title: 'อาหารฝรั่ง', cuisine: 'western', image: require('../assets/wentern.jpg') },
-            { title: 'ของหวาน', cuisine: 'dessert', image: require('../assets/sweet.jpg') },
-            { title: 'อาหารอีสาน', cuisine: 'isan', image: require('../assets/isan.webp') },
-            { title: 'อาหารญี่ปุ่น', cuisine: 'japanese', image: require('../assets/japanes.jpg') },
-            { title: 'อาหารเกาหลี', cuisine: 'korean', image: require('../assets/korea.jpg') },
-            { title: 'อาหารจีน', cuisine: 'chinese', image: require('../assets/chinese.jpg') },
-            { title: 'อาหารง่ายๆ', cuisine: 'easy', image: require('../assets/easyfood.webp') },
-          ].map((cat, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={[styles.cardContainer, styles.categoryCard]}
-              onPress={() => navigation.navigate('CategoryRecipes', { title: cat.title, cuisine: cat.cuisine })}
-            >
-              <View style={[styles.cardImage, { backgroundColor: '#eee' }]}>
-                {cat.image ? (
-                  <Image source={cat.image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                ) : null}
-              </View>
-              <View style={styles.cardTextContainer}>
-                <Text style={styles.cardTitle}>{cat.title}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+        )}
+        contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 16 }}
+      />
 
       {/* Floating Add Button */}
       <AddButton onPress={() => navigation.navigate('CreateRecipe')} />
@@ -67,7 +48,18 @@ const AddButton = ({ onPress }) => (
   </TouchableOpacity>
 );
 
-// ไม่มีแถวเมนูแนะนำต่อหมวดในเวอร์ชันนี้
+const CategoryCard = ({ title, image, onPress }) => (
+  <TouchableOpacity style={[styles.cardContainer, styles.categoryCard]} onPress={onPress}>
+    <View style={[styles.cardImage, { backgroundColor: '#eee' }]}>
+      {image ? (
+        <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+      ) : null}
+    </View>
+    <View style={styles.cardTextContainer}>
+      <Text style={styles.cardTitle}>{title}</Text>
+    </View>
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -90,17 +82,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  // Search Bar
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    borderRadius: 12,
-    margin: 15,
-    paddingHorizontal: 10,
-  },
-  searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, height: 44, fontSize: 16 },
+  
+  // ลบ: styles ของ Search Bar
+  // searchContainer, searchIcon, searchInput
 
   // Section
   sectionContainer: { paddingHorizontal: 15, marginBottom: 10 },

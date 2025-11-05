@@ -53,6 +53,7 @@ const CreateRecipeScreen = ({ navigation, route }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       quality: 0.8,
       base64: false, // เราอ่านไฟล์ตรงผ่าน FileSystem อยู่แล้ว
+      // 💡 แก้ไข: เปลี่ยน MediaTypeOptions เป็น MediaType
       mediaTypes: ImagePicker.MediaType.Images,
       allowsEditing: false,
     });
@@ -63,6 +64,7 @@ const CreateRecipeScreen = ({ navigation, route }) => {
           const processed = await ImageManipulator.manipulateAsync(
             uri,
             [],
+            // 💡 แก้ไข: เราใช้ data URI (base64) เพื่อส่งให้ fetch ทำงานได้ง่าย
             { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
           );
           const dataUri = processed?.base64 ? `data:image/jpeg;base64,${processed.base64}` : uri;
@@ -142,7 +144,8 @@ const CreateRecipeScreen = ({ navigation, route }) => {
       Alert.alert('ต้องการสิทธิ์', 'กรุณาอนุญาตเข้าถึงรูปภาพ');
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+    // 💡 แก้ไข: เปลี่ยน MediaTypeOptions เป็น MediaType
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, mediaTypes: ImagePicker.MediaType.Images });
     if (!result.canceled) {
       const uri = result.assets?.[0]?.uri;
       if (uri) {
@@ -293,167 +296,168 @@ const CreateRecipeScreen = ({ navigation, route }) => {
   );
 };
 
+// ... (คัดลอก styles ทั้งหมดจากไฟล์เดิมมาใส่ที่นี่) ...
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 32,
-    flexGrow: 1,
-  },
-  row2: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imagePicker: {
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: '#F0F0F0',
-    overflow: 'hidden',
-    marginBottom: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  imageHint: {
-    marginTop: 8,
-    color: '#777',
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 12,
-  },
-  textArea: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  label: {
-    marginBottom: 6,
-    color: '#555',
-    fontWeight: '600',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  inlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  iconBtn: {
-    marginLeft: 8,
-    width: 36,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addRowBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 12,
-  },
-  addRowText: {
-    marginLeft: 6,
-    color: '#E27D60',
-    fontWeight: '600',
-  },
-  stepCard: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderColor: '#EEE',
-    borderWidth: 1,
-    padding: 12,
-    marginBottom: 12,
-  },
-  stepHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E27D60',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepImage: {
-    height: 140,
-    borderRadius: 8,
-    backgroundColor: '#F3F3F3',
-    overflow: 'hidden',
-    marginBottom: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    backgroundColor: '#E27D60',
-    paddingVertical: 14,
-    borderRadius: 40,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  secondaryBtn: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E27D60',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  cuisineChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 12,
-  },
-  cuisineChip: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#FFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  cuisineChipActive: {
-    borderColor: '#E27D60',
-    backgroundColor: '#FFE3DB',
-  },
-  cuisineChipText: {
-    color: '#555',
-    fontWeight: '600',
-  },
-  cuisineChipTextActive: {
-    color: '#E27D60',
-  },
+  container: {
+    padding: 16,
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
+  row2: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  imagePicker: {
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#F0F0F0',
+    overflow: 'hidden',
+    marginBottom: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageHint: {
+    marginTop: 8,
+    color: '#777',
+  },
+  input: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+  },
+  label: {
+    marginBottom: 6,
+    color: '#555',
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  inlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  iconBtn: {
+    marginLeft: 8,
+    width: 36,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addRowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  addRowText: {
+    marginLeft: 6,
+    color: '#E27D60',
+    fontWeight: '600',
+  },
+  stepCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderColor: '#EEE',
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 12,
+  },
+  stepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E27D60',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepImage: {
+    height: 140,
+    borderRadius: 8,
+    backgroundColor: '#F3F3F3',
+    overflow: 'hidden',
+    marginBottom: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    backgroundColor: '#E27D60',
+    paddingVertical: 14,
+    borderRadius: 40,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  secondaryBtn: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E27D60',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cuisineChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  cuisineChip: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  cuisineChipActive: {
+    borderColor: '#E27D60',
+    backgroundColor: '#FFE3DB',
+  },
+  cuisineChipText: {
+    color: '#555',
+    fontWeight: '600',
+  },
+  cuisineChipTextActive: {
+    color: '#E27D60',
+  },
 });
 
-export default CreateRecipeScreen;
 
+export default CreateRecipeScreen;

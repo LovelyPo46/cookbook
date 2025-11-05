@@ -23,7 +23,8 @@ const ProfileScreen = ({ navigation }) => {
       Alert.alert('ต้องการสิทธิ์', 'กรุณาอนุญาตเข้าถึงรูปภาพ');
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, allowsEditing: true });
+    // 💡 แก้ไข: เปลี่ยน MediaTypeOptions เป็น MediaType
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 1, allowsEditing: true, mediaTypes: ImagePicker.MediaType.Images });
     if (!result.canceled) {
       const asset = result.assets?.[0];
       const uri = asset?.uri;
@@ -35,8 +36,10 @@ const ProfileScreen = ({ navigation }) => {
             [],
             { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
           );
-          setPhotoUri(processed.uri);
-          setAvatarBase64(processed.base64 || null);
+          // 💡 แก้ไข: เราใช้ data URI (base64) เพื่อส่งให้ fetch ทำงานได้ง่าย
+          const dataUri = processed?.base64 ? `data:image/jpeg;base64,${processed.base64}` : processed.uri;
+          setPhotoUri(dataUri);
+          setAvatarBase64(processed.base64 || null); // 💡 เก็บ base64 ไว้ (ถึงแม้ service ใหม่อาจไม่ใช้)
           Alert.alert('เลือกรูปแล้ว', 'กดบันทึกเพื่ออัปเดตโปรไฟล์');
         } catch (e) {
           Alert.alert('ผิดพลาด', e.message || 'เตรียมรูปภาพไม่สำเร็จ');
@@ -51,19 +54,14 @@ const ProfileScreen = ({ navigation }) => {
       const isRemote = typeof photoUri === 'string' && /^https?:\/\//i.test(photoUri);
 
       let params = { displayName };
-      if (photoUri && (!isRemote || avatarBase64)) {
-        // ถ้าเป็นไฟล์ในเครื่อง หรือมี base64 จากการเลือกรูป ให้ส่งขึ้นไปอัปโหลด
-        let uriToUse = photoUri;
-        let b64 = avatarBase64;
-        if (!b64 && !isRemote) {
-          // กรณีผู้ใช้ใส่รูปก่อนหน้า (ไม่มี base64 เก็บไว้) แปลงใหม่
-          const processed = await ImageManipulator.manipulateAsync(photoUri, [], { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true });
-          uriToUse = processed.uri;
-          b64 = processed.base64 || null;
-          setPhotoUri(uriToUse);
-        }
-        params.photoUri = uriToUse;
-        params.photoBase64 = b64;
+      // 💡 แก้ไข: ส่ง photoUri ไปอย่างเดียว
+      // (service จะจัดการเองว่าต้องอัปโหลดหรือไม่)
+      if (photoUri && photoUri !== user.photoURL) {
+         params.photoUri = photoUri;
+         // 💡 เราไม่จำเป็นต้องส่ง base64 แล้ว
+         // params.photoBase64 = avatarBase64; 
+      } else if (!photoUri) {
+         // (ถ้าผู้ใช้ลบรูป ควรส่ง null - แต่ logic นี้ยังไม่มี)
       }
 
       const res = await updateUserProfile(params);
@@ -143,23 +141,24 @@ const ProfileScreen = ({ navigation }) => {
   );
 };
 
+// ... (คัดลอก styles ทั้งหมดจากไฟล์เดิมมาใส่ที่นี่) ...
 const styles = StyleSheet.create({
-  container: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#EEE',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
-  header: { alignItems: 'center', marginTop: 12 },
-  avatarBox: { position: 'relative' },
-  avatar: { width: 84, height: 84, borderRadius: 42 },
-  camBadge: { position: 'absolute', right: -2, bottom: -2, backgroundColor: '#E27D60', borderRadius: 10, padding: 4 },
-  nameInput: { marginTop: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, width: '80%', backgroundColor: '#fff' },
-  emailText: { color: '#666', marginTop: 8 },
-  saveBtn: { marginTop: 12, backgroundColor: '#E27D60', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24 },
-  saveText: { color: '#fff', fontWeight: 'bold' },
-  // ลบสไตล์ที่เกี่ยวกับการ์ดสถิติออก
-  rowItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
-  rowLeft: { flexDirection: 'row', alignItems: 'center' },
-  rowText: { marginLeft: 10, color: '#333', fontWeight: '600' },
-  rowDivider: { height: 1, backgroundColor: '#EEE' },
+  container: { padding: 16 },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#EEE',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+  header: { alignItems: 'center', marginTop: 12 },
+  avatarBox: { position: 'relative' },
+  avatar: { width: 84, height: 84, borderRadius: 42 },
+  camBadge: { position: 'absolute', right: -2, bottom: -2, backgroundColor: '#E27D60', borderRadius: 10, padding: 4 },
+  nameInput: { marginTop: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, width: '80%', backgroundColor: '#fff' },
+  emailText: { color: '#666', marginTop: 8 },
+  saveBtn: { marginTop: 12, backgroundColor: '#E27D60', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 24 },
+  saveText: { color: '#fff', fontWeight: 'bold' },
+  // ลบสไตล์ที่เกี่ยวกับการ์ดสถิติออก
+  rowItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  rowLeft: { flexDirection: 'row', alignItems: 'center' },
+  rowText: { marginLeft: 10, color: '#333', fontWeight: '600' },
+  rowDivider: { height: 1, backgroundColor: '#EEE' },
 });
 
 export default ProfileScreen;

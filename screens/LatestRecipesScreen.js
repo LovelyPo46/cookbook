@@ -11,7 +11,24 @@ const LatestRecipesScreen = ({ navigation }) => {
   const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const pageSize = 20;
+  const PAGE_SIZE = 20;
+
+  const docsToList = useCallback((snap) => {
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((x) => !x.seedKey);
+  }, []);
+
+  const buildQuery = useCallback((user, after) => {
+    const base = [
+      collection(db, 'recipes'),
+      where('authorId', '==', user.uid),
+      where('isDraft', '==', false),
+      orderBy('createdAt', 'desc'),
+    ];
+    if (after) return query(...base, startAfter(after), qlimit(PAGE_SIZE));
+    return query(...base, qlimit(PAGE_SIZE));
+  }, []);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -20,23 +37,14 @@ const LatestRecipesScreen = ({ navigation }) => {
       setLoading(false);
       return;
     }
-    const q = query(
-      collection(db, 'recipes'),
-      where('authorId', '==', user.uid),
-      where('isDraft', '==', false),
-      orderBy('createdAt', 'desc'),
-      qlimit(pageSize)
-    );
+    const q = buildQuery(user);
     const unsub = onSnapshot(
       q,
       (snap) => {
-        // [!!] แก้ไขจุดที่ 1: เพิ่ม .filter
-        const list = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter((x) => !x.seedKey); // <-- เพิ่มบรรทัดนี้
+        const list = docsToList(snap);
         setItems(list);
         setLastDoc(snap.docs.length ? snap.docs[snap.docs.length - 1] : null);
-        setHasMore(snap.docs.length === pageSize);
+        setHasMore(snap.docs.length === PAGE_SIZE);
         setLoading(false);
       },
       async (err) => {
@@ -48,16 +56,13 @@ const LatestRecipesScreen = ({ navigation }) => {
               collection(db, 'recipes'),
               where('authorId', '==', user.uid),
               where('isDraft', '==', false),
-              qlimit(pageSize)
+              qlimit(PAGE_SIZE)
             )
           );
-          // [!!] แก้ไขจุดที่ 2: เพิ่ม .filter (ใน Fallback)
-          const list = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((x) => !x.seedKey); // <-- เพิ่มบรรทัดนี้
+          const list = docsToList(snap);
           setItems(list);
           setLastDoc(snap.docs.length ? snap.docs[snap.docs.length - 1] : null);
-          setHasMore(snap.docs.length === pageSize);
+          setHasMore(snap.docs.length === PAGE_SIZE);
         } catch (e) {
           Alert.alert('อ่านข้อมูลไม่สำเร็จ', e.message || 'เกิดข้อผิดพลาด');
         } finally {
@@ -66,58 +71,35 @@ const LatestRecipesScreen = ({ navigation }) => {
       }
     );
     return () => unsub();
-  }, []);
+  }, [buildQuery, docsToList]);
 
   const onRefresh = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
     try {
       setRefreshing(true);
-      const snap = await getDocs(
-        query(
-          collection(db, 'recipes'),
-          where('authorId', '==', user.uid),
-          where('isDraft', '==', false),
-          orderBy('createdAt', 'desc'),
-          qlimit(pageSize)
-        )
-      );
-      // [!!] แก้ไขจุดที่ 3: เพิ่ม .filter (ใน onRefresh)
-      const list = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((x) => !x.seedKey); // <-- เพิ่มบรรทัดนี้
+      const snap = await getDocs(buildQuery(user));
+      const list = docsToList(snap);
       setItems(list);
       setLastDoc(snap.docs.length ? snap.docs[snap.docs.length - 1] : null);
-      setHasMore(snap.docs.length === pageSize);
+      setHasMore(snap.docs.length === PAGE_SIZE);
     } catch (e) {
       Alert.alert('รีเฟรชไม่สำเร็จ', e.message || 'เกิดข้อผิดพลาด');
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [buildQuery, docsToList]);
 
   const loadMore = useCallback(async () => {
     const user = auth.currentUser;
     if (!user || !hasMore || loadingMore || !lastDoc) return;
     try {
       setLoadingMore(true);
-      const snap = await getDocs(
-        query(
-          collection(db, 'recipes'),
-          where('authorId', '==', user.uid),
-          where('isDraft', '==', false),
-          orderBy('createdAt', 'desc'),
-          startAfter(lastDoc),
-          qlimit(pageSize)
-        )
-      );
-      // [!!] แก้ไขจุดที่ 4: เพิ่ม .filter (ใน loadMore)
-      const list = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((x) => !x.seedKey); // <-- เพิ่มบรรทัดนี้
+      const snap = await getDocs(buildQuery(user, lastDoc));
+      const list = docsToList(snap);
       setItems((prev) => [...prev, ...list]);
       setLastDoc(snap.docs.length ? snap.docs[snap.docs.length - 1] : null);
-      setHasMore(snap.docs.length === pageSize);
+      setHasMore(snap.docs.length === PAGE_SIZE);
     } catch (e) {
       Alert.alert('โหลดเพิ่มไม่สำเร็จ', e.message || 'เกิดข้อผิดพลาด');
     } finally {

@@ -11,19 +11,25 @@ import CategoryRecipesScreen from '../screens/CategoryRecipesScreen';
 
 const Stack = createNativeStackNavigator();
 
+const BackButton = ({ onPress }) => (
+  <TouchableOpacity onPress={onPress} style={{ paddingLeft: 4 }}>
+    <Ionicons name="chevron-back" size={24} color="#E27D60" />
+  </TouchableOpacity>
+);
+
 const HomeStackNavigator = () => {
   return (
     <Stack.Navigator
       initialRouteName="HomeScreen"
-      screenOptions={{
-        // เส้นขีดสีฟ้าใต้ Header ของหน้าที่อยู่ใน Home Stack
+      screenOptions={({ navigation }) => ({
         headerStyle: { borderBottomColor: '#E27D60', borderBottomWidth: 3 },
         headerTintColor: '#E27D60',
         headerLeftContainerStyle: { paddingLeft: 16 },
-        // iOS: แสดงปุ่มย้อนกลับแบบไอคอนอย่างเดียว (ไม่มีข้อความ)
         backButtonDisplayMode: 'minimal',
         headerShadowVisible: false,
-      }}
+        // ปุ่มย้อนกลับดีฟอลต์
+        headerLeft: () => <BackButton onPress={() => navigation.goBack()} />,
+      })}
     >
       <Stack.Screen 
         name="HomeScreen" 
@@ -33,27 +39,17 @@ const HomeStackNavigator = () => {
       <Stack.Screen
         name="CategoryRecipes"
         component={CategoryRecipesScreen}
-        options={({ route, navigation }) => ({
+        options={({ route }) => ({
           title: route?.params?.title || 'หมวดหมู่',
           headerBackVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 4 }}>
-              <Ionicons name="chevron-back" size={24} color="#E27D60" />
-            </TouchableOpacity>
-          ),
         })}
       />
       <Stack.Screen 
         name="RecipeDetail" 
         component={RecipeDetailScreen} 
-        options={({ route, navigation }) => ({ 
+        options={({ route }) => ({ 
           title: route?.params?.recipeTitle || 'รายละเอียดสูตร',
           headerBackVisible: false,
-          headerLeft: () => (
-            <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 4 }}>
-              <Ionicons name="chevron-back" size={24} color="#E27D60" />
-            </TouchableOpacity>
-          ),
         })} 
       />
       <Stack.Screen 
@@ -62,8 +58,9 @@ const HomeStackNavigator = () => {
         options={({ navigation, route }) => ({ 
           title: 'โพสต์สูตรอาหาร',
           headerBackVisible: false,
+          // override ดีฟอลต์เพราะมีเงื่อนไข fromProfile
           headerLeft: () => (
-            <TouchableOpacity
+            <BackButton
               onPress={() => {
                 const fromProfile = route?.params?.fromProfile;
                 if (fromProfile) {
@@ -72,10 +69,7 @@ const HomeStackNavigator = () => {
                   navigation.goBack();
                 }
               }}
-              style={{ paddingLeft: 4 }}
-            >
-              <Ionicons name="chevron-back" size={24} color="#E27D60" />
-            </TouchableOpacity>
+            />
           ),
         })}
       />
@@ -86,7 +80,7 @@ const HomeStackNavigator = () => {
           title: 'สูตรของฉัน',
           headerBackVisible: false,
           headerLeft: () => (
-            <TouchableOpacity
+            <BackButton
               onPress={() => {
                 const fromProfile = route?.params?.fromProfile;
                 if (fromProfile) {
@@ -95,10 +89,7 @@ const HomeStackNavigator = () => {
                   navigation.goBack();
                 }
               }}
-              style={{ paddingLeft: 4 }}
-            >
-              <Ionicons name="chevron-back" size={24} color="#E27D60" />
-            </TouchableOpacity>
+            />
           ),
         })}
       />

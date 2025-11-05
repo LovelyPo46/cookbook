@@ -71,7 +71,7 @@ const MainTabNavigator = () => {
       <Drawer.Screen
         name="Favorites"
         component={FavoritesScreen}
-        options={{ title: 'ของโปรด' }}
+        options={{ title: 'ของโปรด' ,unmountOnBlur: true}}
       />
       <Drawer.Screen
         name="Profile"

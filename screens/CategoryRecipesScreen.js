@@ -59,7 +59,6 @@ export default function CategoryRecipesScreen({ route, navigation }) {
       }
     );
 
-    navigation.setOptions?.({ title });
     return () => unsub();
   }, [cuisine, maxItems, seedKey]);
 

@@ -13,12 +13,19 @@ const FavoritesScreen = ({ navigation }) => {
     try {
       if (!auth.currentUser) { setItems([]); setLoading(false); return; }
       const ids = await listFavoriteRecipeIds();
-      const results = [];
-      for (const id of ids) {
-        const snap = await getDoc(doc(db, 'recipes', id));
-        if (snap.exists()) results.push({ id, ...snap.data() });
-      }
-      setItems(results);
+      if (!ids.length) { setItems([]); return; }
+      // fetch in parallel for speed
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const snap = await getDoc(doc(db, 'recipes', id));
+            return snap.exists() ? { id, ...snap.data() } : null;
+          } catch (_) {
+            return null;
+          }
+        })
+      );
+      setItems(results.filter(Boolean));
     } finally {
       setLoading(false);
     }

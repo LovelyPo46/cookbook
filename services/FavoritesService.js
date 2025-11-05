@@ -1,6 +1,6 @@
 // services/FavoritesService.js
 import { auth, db } from '../firebase';
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp, orderBy, limit as qlimit } from 'firebase/firestore';
 
 function favDocRef(uid, recipeId) {
   return doc(db, 'favorites', `${uid}_${recipeId}`);
@@ -28,11 +28,15 @@ export async function toggleFavorite(recipeId) {
   }
 }
 
-export async function listFavoriteRecipeIds() {
+export async function listFavoriteRecipeIds(max = 200) {
   const user = auth.currentUser;
   if (!user) throw new Error('ต้องเข้าสู่ระบบ');
-  const q = query(collection(db, 'favorites'), where('userId', '==', user.uid));
-  const snap = await getDocs(q);
+  const qy = query(
+    collection(db, 'favorites'),
+    where('userId', '==', user.uid),
+    orderBy('createdAt', 'desc'),
+    qlimit(max)
+  );
+  const snap = await getDocs(qy);
   return snap.docs.map((d) => (d.data() || {}).recipeId).filter(Boolean);
 }
-

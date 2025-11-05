@@ -60,20 +60,18 @@ export async function fixRecipes({ onlyMine = true } = {}) {
   let batch = writeBatch(db);
   let ops = 0;
   let updated = 0;
-  snap.forEach((d) => {
+
+  // ใช้ for...of เพื่อ await commit แบบเป็นช่วงได้
+  for (const d of snap.docs) {
     const r = d.data() || {};
     const patch = {};
-    // titleLower
     const t = (r.title || '').toString().trim();
     if (t && r.titleLower !== t.toLowerCase()) patch.titleLower = t.toLowerCase();
-    // imageUrl
     if (!r.imageUrl) patch.imageUrl = pickPlaceholder(r.cuisine);
-    // ingredients
     if (!Array.isArray(r.ingredients) || (r.ingredients.length && typeof r.ingredients[0] !== 'string')) {
       const norm = normalizeIngredients(r.ingredients);
       if (norm.length) patch.ingredients = norm;
     }
-    // steps/instructions
     if (!Array.isArray(r.steps) || r.steps.length === 0 || typeof r.steps[0] !== 'object') {
       const normSteps = normalizeSteps(r.steps, r.instructions);
       if (normSteps.length) patch.steps = normSteps;
@@ -84,11 +82,14 @@ export async function fixRecipes({ onlyMine = true } = {}) {
       ops++;
       updated++;
       if (ops >= 400) {
-        // commit chunk
-        // Note: Cannot await inside forEach; this is acceptable for current dataset sizes, but keep chunking safeguard
+        await batch.commit();
+        batch = writeBatch(db);
+        ops = 0;
       }
     }
-  });
-  await batch.commit();
+  }
+  if (ops > 0) {
+    await batch.commit();
+  }
   return { scanned: snap.size, updated };
 }

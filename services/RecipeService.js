@@ -1,28 +1,20 @@
 // services/RecipeService.js
 import { db, auth, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp, getDocs, query, where, writeBatch } from 'firebase/firestore';
-import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+// 💡 แก้ไข: เปลี่ยน uploadString เป็น uploadBytes
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 // Use legacy API to support readAsStringAsync/copyAsync on SDK 54+
 import * as FileSystem from 'expo-file-system/legacy';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
-const BASE64 = (FileSystem?.EncodingType && FileSystem.EncodingType.Base64) || 'base64';
+// 💡 หมายเหตุ: เราจะไม่ใช้ BASE64 อีกต่อไป
+// const BASE64 = (FileSystem?.EncodingType && FileSystem.EncodingType.Base64) || 'base64';
 
 
 async function uploadImageAsync(localUri, storagePath) {
   if (!localUri) return null;
 
-  // Support data URI directly
-  if (typeof localUri === 'string' && localUri.startsWith('data:')) {
-    const match = /^data:(.*?);base64,(.*)$/.exec(localUri);
-    if (match) {
-      const contentType = match[1] || 'image/jpeg';
-      const base64 = match[2];
-      const storageRef = ref(storage, storagePath);
-      await uploadString(storageRef, base64, 'base64', { contentType });
-      return await getDownloadURL(storageRef);
-    }
-  }
+  // 💡 ลบ: บล็อกที่ตรวจสอบ data: URI (เราจะใช้ fetch แทน)
 
   // Derive extension and ensure a file:// URI (copy from content:// if needed)
   let ext = String((localUri.split('.').pop() || 'jpg').split('?')[0]).toLowerCase();
@@ -31,7 +23,10 @@ async function uploadImageAsync(localUri, storagePath) {
 
   let fileUri = localUri;
   try {
-    if (/^(content:\/\/|ph:\/\/)/i.test(localUri) || !/^file:\/\//i.test(localUri)) {
+    // 💡 แก้ไข: เพิ่มเงื่อนไขเช็ค data: URI เพื่อไม่ให้พยายาม copy
+    if (localUri.startsWith('data:')) {
+      fileUri = localUri;
+    } else if (/^(content:\/\/|ph:\/\/)/i.test(localUri) || !/^file:\/\//i.test(localUri)) {
       const tmp = `${FileSystem.cacheDirectory || ''}upload_${Date.now()}.${ext}`;
       await FileSystem.copyAsync({ from: localUri, to: tmp });
       fileUri = tmp;
@@ -42,9 +37,14 @@ async function uploadImageAsync(localUri, storagePath) {
 
   const storageRef = ref(storage, storagePath);
 
-  // Preferred path on Expo: upload base64 string
-  const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: BASE64 });
-  await uploadString(storageRef, base64, 'base64', { contentType });
+  // 💡💡💡 นี่คือส่วนแก้ไขหลัก (Blob upload) 💡💡💡
+  // 1. แปลง fileUri (ไม่ว่าจะเป็น file:// หรือ data:) ให้เป็น Blob
+  const response = await fetch(fileUri);
+  const blob = await response.blob();
+
+  // 2. อัปโหลด Blob โดยใช้ uploadBytes
+  await uploadBytes(storageRef, blob);
+  
   return await getDownloadURL(storageRef);
 }
 
@@ -84,9 +84,14 @@ export async function createRecipe({
 
   let imageUrl = null;
   if (imageUri) {
-    const extGuess = (imageUri.split('.').pop() || 'jpg').split('?')[0];
-    const filename = `recipes/${user.uid}/${Date.now()}.${extGuess}`;
-    imageUrl = await uploadImageAsync(imageUri, filename);
+    const isRemote = typeof imageUri === 'string' && (/^https?:\/\//i).test(imageUri);
+    if (isRemote) {
+      imageUrl = imageUri;
+    } else {
+      const extGuess = (String(imageUri).split('.').pop() || 'jpg').split('?')[0];
+      const filename = `recipes/${user.uid}/${Date.now()}.${extGuess}`;
+      imageUrl = await uploadImageAsync(imageUri, filename);
+    }
   }
 
   const stepUploads = [];
@@ -94,9 +99,14 @@ export async function createRecipe({
     const st = baseSteps[i];
     let stepImageUrl = null;
     if (st.imageUri) {
-      const extGuess = (st.imageUri.split('.').pop() || 'jpg').split('?')[0];
-      const filename = `recipes/${user.uid}/steps/${Date.now()}_${i}.${extGuess}`;
-      stepImageUrl = await uploadImageAsync(st.imageUri, filename);
+      const isRemote = typeof st.imageUri === 'string' && (/^https?:\/\//i).test(st.imageUri);
+      if (isRemote) {
+        stepImageUrl = st.imageUri;
+      } else {
+        const extGuess = (String(st.imageUri).split('.').pop() || 'jpg').split('?')[0];
+        const filename = `recipes/${user.uid}/steps/${Date.now()}_${i}.${extGuess}`;
+        stepImageUrl = await uploadImageAsync(st.imageUri, filename);
+      }
     }
     stepUploads.push({ order: st.order, text: st.text, imageUrl: stepImageUrl });
   }
@@ -187,7 +197,8 @@ export async function deleteRecipe(recipeId) {
   await deleteDoc(target);
 }
 
-// Delete all recipes created by the current user (both drafts and published)
+// ... (โค้ดส่วนที่เหลือของ RecipeService.js เหมือนเดิม) ...
+// Delete all my recipes created by the current user (both drafts and published)
 export async function deleteAllMyRecipes() {
   const user = auth.currentUser;
   if (!user) throw new Error('ต้องเข้าสู่ระบบ');
